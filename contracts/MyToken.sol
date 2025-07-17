@@ -16,17 +16,20 @@ contract MyToken is
 {
     uint256 private _nextTokenId;
 
+    // metadata 源数据
+    string constant META_DATA =
+        "ipfs://QmTjDx95SPnMza9o3izpSfM8ZRuENM95jRHrPZetmyticH";
+
     constructor(
         address initialOwner
     ) ERC721("MyToken", "MTK") Ownable(initialOwner) {}
 
     function safeMint(
         address to,
-        string memory uri
     ) public onlyOwner returns (uint256) {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
-        _setTokenURI(tokenId, uri);
+        _setTokenURI(tokenId, META_DATA);
         return tokenId;
     }
 
