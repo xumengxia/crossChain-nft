@@ -21,8 +21,8 @@ contract MyToken is
         "ipfs://QmTjDx95SPnMza9o3izpSfM8ZRuENM95jRHrPZetmyticH";
 
     constructor(
-        address initialOwner
-    ) ERC721("MyToken", "MTK") Ownable(initialOwner) {}
+        string memory tokenName, string memory tokenSymbol
+    ) ERC721(tokenName, tokenSymbol) Ownable(msg.sender) {}
 
     function safeMint(
         address to,
