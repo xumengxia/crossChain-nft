@@ -11,3 +11,9 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat ignition deploy ./ignition/modules/Lock.js
 ```
+
+# 测试
+```
+npx hardhat deploy --network sepolia --tags sourcechain
+npx hardhat deploy --network amoy --tags destchain
+```

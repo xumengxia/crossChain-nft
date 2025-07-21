@@ -9,7 +9,7 @@ import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import {CCIPReceiver} from "@chainlink/contracts-ccip/contracts/applications/CCIPReceiver.sol";
 import {IERC20} from "@chainlink/contracts/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@chainlink/contracts/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/utils/SafeERC20.sol";
-import {MyToken} from "./MyToken.sol";
+import {WrappedMyToken} from "./WrappedMyToken.sol";
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES HARDCODED VALUES FOR CLARITY.
@@ -18,7 +18,7 @@ import {MyToken} from "./MyToken.sol";
  */
 
 /// @title - A simple messenger contract for sending/receving string data across chains.
-contract NFTPoolLockAndRelease is CCIPReceiver, OwnerIsCreator {
+contract NFTPoolBurnAndMint is CCIPReceiver, OwnerIsCreator {
     using SafeERC20 for IERC20;
 
     // Custom errors to provide more descriptive revert messages.
@@ -37,7 +37,7 @@ contract NFTPoolLockAndRelease is CCIPReceiver, OwnerIsCreator {
     );
 
     // Event emitted when a message is received from another chain.
-    event TokenUnlocked(uint256 tokenId, address newOwner);
+    event TokenMinted(uint256 tokenId, address newOwner);
 
     bytes32 private s_lastReceivedMessageId; // Store the last received messageId.
     string private s_lastReceivedText; // Store the last received text.
@@ -45,7 +45,7 @@ contract NFTPoolLockAndRelease is CCIPReceiver, OwnerIsCreator {
     IERC20 private s_linkToken;
 
     // remember to add visibility for the variable
-    MyToken public nft;
+    WrappedMyToken public wnft;
 
     struct RequestData {
         uint256 tokenId;
@@ -53,7 +53,7 @@ contract NFTPoolLockAndRelease is CCIPReceiver, OwnerIsCreator {
     }
 
     // remember to add visibility for the variable
-    // mapping(uint256 => bool) public tokenLocked;
+    mapping(uint256 => bool) public tokenLocked;
 
     /// @notice Constructor initializes the contract with the router address.
     /// @param _router The address of the router contract.
@@ -64,7 +64,7 @@ contract NFTPoolLockAndRelease is CCIPReceiver, OwnerIsCreator {
         address nftAddr
     ) CCIPReceiver(_router) {
         s_linkToken = IERC20(_link);
-        nft = MyToken(nftAddr);
+        wnft = WrappedMyToken(nftAddr);
     }
 
     // lock NFT and send CCIP transaction
@@ -79,7 +79,10 @@ contract NFTPoolLockAndRelease is CCIPReceiver, OwnerIsCreator {
         // require(nft.ownerOf(tokenId) == msg.sender, "you are not the owner of the NFT");
 
         // tansfer the NFT from owner to the pool
-        nft.transferFrom(msg.sender, address(this), tokenId);
+        wnft.transferFrom(msg.sender, address(this), tokenId);
+
+        // burn the wnft before send to ccip
+        wnft.burn(tokenId);
         // send request to Chainlink CCIP to send the NFT to the other Chain
         bytes memory payload = abi.encode(tokenId, newOwner);
         bytes32 messageId = sendMessagePayLINK(
@@ -87,7 +90,7 @@ contract NFTPoolLockAndRelease is CCIPReceiver, OwnerIsCreator {
             destReceiver,
             payload
         );
-        // tokenLocked[tokenId] = true;
+        tokenLocked[tokenId] = true;
         return messageId;
     }
 
@@ -143,17 +146,12 @@ contract NFTPoolLockAndRelease is CCIPReceiver, OwnerIsCreator {
     function _ccipReceive(
         Client.Any2EVMMessage memory any2EvmMessage
     ) internal override {
-        s_lastReceivedMessageId = any2EvmMessage.messageId; // fetch the messageId
-        RequestData memory requestData = abi.decode(
-            any2EvmMessage.data,
-            (RequestData)
-        );
-        uint256 tokenId = requestData.tokenId;
-        address newOwner = requestData.newOwner;
-        // require(tokenLocked[tokenId], "the NFT is not locked"); // 自带检测
-        // transfer token from this address to newOwner
-        nft.transferFrom(address(this), newOwner, tokenId);
-        emit TokenUnlocked(tokenId, newOwner);
+        // address newOwner ,uint256 tokenId
+        RequestData memory rd = abi.decode(any2EvmMessage.data, (RequestData));
+        address newOwner = rd.newOwner;
+        uint256 tokenId = rd.tokenId;
+        wnft.mintWithSpecificTokenId(newOwner, tokenId);
+        emit TokenMinted(tokenId, newOwner);
     }
 
     /// @notice Construct a CCIP message.
