@@ -143,13 +143,10 @@ contract NFTPoolLockAndRelease is CCIPReceiver, OwnerIsCreator {
     function _ccipReceive(
         Client.Any2EVMMessage memory any2EvmMessage
     ) internal override {
-        s_lastReceivedMessageId = any2EvmMessage.messageId; // fetch the messageId
-        RequestData memory requestData = abi.decode(
-            any2EvmMessage.data,
-            (RequestData)
-        );
-        uint256 tokenId = requestData.tokenId;
-        address newOwner = requestData.newOwner;
+        // s_lastReceivedMessageId = any2EvmMessage.messageId; // fetch the messageId
+        RequestData memory rd = abi.decode(any2EvmMessage.data, (RequestData));
+        address newOwner = rd.newOwner;
+        uint256 tokenId = rd.tokenId;
         // require(tokenLocked[tokenId], "the NFT is not locked"); // 自带检测
         // transfer token from this address to newOwner
         nft.transferFrom(address(this), newOwner, tokenId);
