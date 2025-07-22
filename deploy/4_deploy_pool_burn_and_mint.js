@@ -5,16 +5,16 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy, log } = deployments;
     log("NFTPoolBurnAndMint deploying");
 
-    let sourceChainRouter;
+    let destChainRouter;
     let linkTokenAddr;
     if (developmentChain.includes(network.name)) {
         const CCIPLocalSimulatorDeployment = await deployments.get("CCIPLocalSimulator");
         const ccipSimulator = await ethers.getContractAt("CCIPLocalSimulator", CCIPLocalSimulatorDeployment.address);
         const ccipConfig = await ccipSimulator.configuration();
-        sourceChainRouter = ccipConfig.sourceRouter_;
+        destChainRouter = ccipConfig.destinationRouter_;
         linkTokenAddr = ccipConfig.linkToken_;
     } else {
-        sourceChainRouter = networkConfig[network.config.chainId].router;
+        destChainRouter = networkConfig[network.config.chainId].router;
         linkTokenAddr = networkConfig[network.config.chainId].linkToken;
     }
 
