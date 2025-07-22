@@ -3,7 +3,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("@nomicfoundation/hardhat-ethers");
 require("hardhat-deploy");
 require("hardhat-deploy-ethers");
-// require("./task")
+require("./task")
 
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY
